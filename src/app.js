@@ -12,8 +12,12 @@ const app = express();
 
 // ─── Security ─────────────────────────────────────────────────
 app.use(helmet());
+const allowedOrigins = config.clientUrl === '*'
+  ? '*'
+  : config.clientUrl.split(',').map(o => o.trim());
+
 app.use(cors({
-  origin: config.isProd ? config.clientUrl : '*',
+  origin: config.isProd ? allowedOrigins : '*',
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,

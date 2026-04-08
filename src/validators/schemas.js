@@ -45,15 +45,20 @@ export const transactionQuerySchema = z.object({
 });
 
 // ─── BUDGETS ──────────────────────────────────────────────────
-export const createBudgetSchema = z.object({
+const budgetBaseSchema = z.object({
   category:  z.string().min(1).max(50),
   limit:     z.number().positive('Limit must be positive'),
   period:    z.enum(['WEEKLY', 'MONTHLY', 'YEARLY']).default('MONTHLY'),
   startDate: z.string().datetime(),
   endDate:   z.string().datetime(),
-}).refine(data => new Date(data.endDate) > new Date(data.startDate), {
-  message: 'End date must be after start date',
-  path: ['endDate'],
 });
 
-export const updateBudgetSchema = createBudgetSchema.partial();
+export const createBudgetSchema = budgetBaseSchema.refine(
+  data => new Date(data.endDate) > new Date(data.startDate),
+  { message: 'End date must be after start date', path: ['endDate'] }
+);
+
+export const updateBudgetSchema = budgetBaseSchema.partial().refine(
+  data => !data.startDate || !data.endDate || new Date(data.endDate) > new Date(data.startDate),
+  { message: 'End date must be after start date', path: ['endDate'] }
+);
