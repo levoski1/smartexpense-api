@@ -44,4 +44,18 @@ export const AuthController = {
       sendSuccess(res, { user });
     } catch (err) { next(err); }
   },
+
+  async forgotPassword(req, res, next) {
+    try {
+      await AuthService.forgotPassword(req.body.email);
+      sendSuccess(res, null, 'If an account with that email exists, a password reset link has been sent.');
+    } catch (err) { next(err); }
+  },
+
+  async resetPassword(req, res, next) {
+    try {
+      await AuthService.resetPassword(req.body.token, req.body.password);
+      sendSuccess(res, null, 'Password reset successfully. Please log in with your new password.');
+    } catch (err) { next(err); }
+  },
 };

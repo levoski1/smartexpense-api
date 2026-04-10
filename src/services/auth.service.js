@@ -1,8 +1,10 @@
 // src/services/auth.service.js
-import bcrypt from 'bcryptjs';
+import crypto   from 'crypto';
+import bcrypt   from 'bcryptjs';
 import { AuthRepository } from '../repositories/auth.repository.js';
+import { EmailService }   from './email.service.js';
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../utils/jwt.js';
-import { Conflict, Unauthorized, NotFound } from '../utils/AppError.js';
+import { BadRequest, Conflict, Unauthorized, NotFound } from '../utils/AppError.js';
 import { config } from '../config/env.js';
 
 export const AuthService = {
@@ -59,6 +61,34 @@ export const AuthService = {
     const user = await AuthRepository.findUserById(userId);
     if (!user) throw NotFound('User not found');
     return user;
+  },
+
+  async forgotPassword(email) {
+    // Always return success to prevent user enumeration
+    const user = await AuthRepository.findUserByEmail(email);
+    if (!user) return;
+
+    const plainToken = crypto.randomBytes(32).toString('hex');
+    const tokenHash  = crypto.createHash('sha256').update(plainToken).digest('hex');
+    const expiresAt  = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+    await AuthRepository.savePasswordResetToken({ userId: user.id, tokenHash, expiresAt });
+    await EmailService.sendPasswordReset(user.email, user.name, plainToken);
+  },
+
+  async resetPassword(plainToken, newPassword) {
+    const tokenHash = crypto.createHash('sha256').update(plainToken).digest('hex');
+    const record    = await AuthRepository.findPasswordResetToken(tokenHash);
+
+    if (!record || record.used || new Date() > record.expiresAt) {
+      throw BadRequest('Invalid or expired password reset token');
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+
+    await AuthRepository.updateUserPassword(record.userId, passwordHash);
+    await AuthRepository.markPasswordResetTokenUsed(tokenHash);
+    await AuthRepository.deleteAllUserRefreshTokens(record.userId);
   },
 
   // Private helper — issues both tokens, saves refresh token to DB

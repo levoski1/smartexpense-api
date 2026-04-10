@@ -22,6 +22,22 @@ export const refreshTokenSchema = z.object({
   refreshToken: z.string().min(1, 'Refresh token is required'),
 });
 
+export const forgotPasswordSchema = z.object({
+  email: z.string().email('Invalid email address'),
+});
+
+const passwordSchema = z
+  .string()
+  .min(8, 'Password must be at least 8 characters')
+  .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+  .regex(/[0-9]/, 'Password must contain at least one number')
+  .regex(/[^A-Za-z0-9]/, 'Password must contain at least one special character');
+
+export const resetPasswordSchema = z.object({
+  token:    z.string().min(1, 'Reset token is required'),
+  password: passwordSchema,
+});
+
 // ─── TRANSACTIONS ─────────────────────────────────────────────
 export const createTransactionSchema = z.object({
   type: z.enum(['INCOME', 'EXPENSE'], { message: 'Type must be INCOME or EXPENSE' }),

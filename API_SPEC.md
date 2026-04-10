@@ -46,6 +46,7 @@ All responses follow this structure:
 | Route Group | Limit |
 |---|---|
 | `POST /auth/register`, `/auth/login`, `/auth/refresh` | 10 req / 15 min per IP |
+| `POST /auth/forgot-password`, `/auth/reset-password` | 5 req / 15 min per IP |
 | `GET /ai/*`, `POST /ai/*` | 20 req / hour per IP |
 | All other routes | 100 req / 15 min per IP |
 
@@ -199,6 +200,72 @@ Invalidates a single refresh token.
   "message": "Logged out successfully"
 }
 ```
+
+---
+
+### POST /auth/forgot-password
+
+Sends a password reset link to the user's email. Always returns 200 regardless of whether the email exists (prevents user enumeration).
+
+**Headers:** none required
+
+**Rate limit:** 5 requests / 15 min per IP
+
+**Body:**
+| Field | Type | Required |
+|---|---|---|
+| email | string | yes |
+
+**Sample Request:**
+```json
+{
+  "email": "demo@smartexpense.com"
+}
+```
+
+**Sample Response (200):**
+```json
+{
+  "status": "success",
+  "message": "If an account with that email exists, a password reset link has been sent."
+}
+```
+
+**Errors:** `400` invalid email format · `429` rate limit exceeded
+
+---
+
+### POST /auth/reset-password
+
+Resets the user's password using the token received in the reset email. Invalidates all existing refresh tokens on success.
+
+**Headers:** none required
+
+**Rate limit:** 5 requests / 15 min per IP
+
+**Body:**
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| token | string | yes | plaintext token from the reset link |
+| password | string | yes | min 8 chars, 1 uppercase, 1 number, 1 special char |
+
+**Sample Request:**
+```json
+{
+  "token": "a3f8c2e1d4b7...",
+  "password": "NewSecret@456"
+}
+```
+
+**Sample Response (200):**
+```json
+{
+  "status": "success",
+  "message": "Password reset successfully. Please log in with your new password."
+}
+```
+
+**Errors:** `400` invalid/expired/used token · `400` password policy violation · `429` rate limit exceeded
 
 ---
 
