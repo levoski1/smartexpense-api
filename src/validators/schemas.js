@@ -39,23 +39,50 @@ export const resetPasswordSchema = z.object({
 });
 
 // ─── TRANSACTIONS ─────────────────────────────────────────────
-export const createTransactionSchema = z.object({
-  type: z.enum(['INCOME', 'EXPENSE'], { message: 'Type must be INCOME or EXPENSE' }),
-  amount: z.number().positive('Amount must be positive').multipleOf(0.01),
-  category: z.string().min(1).max(50),
-  description: z.string().max(255).optional(),
-  date: z.string().datetime().optional(),
+
+// Accepts dd/mm/yyyy or ISO datetime, converts to JS Date
+const parseDateInput = (val) => {
+  if (!val) return undefined;
+  // dd/mm/yyyy
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(val)) {
+    const [dd, mm, yyyy] = val.split('/');
+    return new Date(`${yyyy}-${mm}-${dd}T00:00:00.000Z`);
+  }
+  // ISO string fallback
+  const d = new Date(val);
+  if (isNaN(d.getTime())) throw new Error('Invalid date format. Use dd/mm/yyyy');
+  return d;
+};
+
+const dateField = z.string().optional().transform((val, ctx) => {
+  if (!val) return undefined;
+  try { return parseDateInput(val); }
+  catch { ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Invalid date. Use dd/mm/yyyy' }); return z.NEVER; }
 });
 
-export const updateTransactionSchema = createTransactionSchema.partial();
+export const createTransactionSchema = z.object({
+  type:        z.string().min(1).transform(v => v.toUpperCase()),
+  amount:      z.number().positive('Amount must be positive').multipleOf(0.01),
+  category:    z.string().min(1).max(50).transform(v => v.toLowerCase()),
+  description: z.string().max(255).optional(),
+  date:        dateField,
+});
+
+export const updateTransactionSchema = z.object({
+  type:        z.string().min(1).transform(v => v.toUpperCase()).optional(),
+  amount:      z.number().positive('Amount must be positive').multipleOf(0.01).optional(),
+  category:    z.string().min(1).max(50).transform(v => v.toLowerCase()).optional(),
+  description: z.string().max(255).optional(),
+  date:        dateField,
+});
 
 export const transactionQuerySchema = z.object({
-  page:     z.coerce.number().int().positive().default(1),
-  limit:    z.coerce.number().int().min(1).max(100).default(20),
-  type:     z.enum(['INCOME', 'EXPENSE']).optional(),
-  category: z.string().optional(),
-  startDate: z.string().datetime().optional(),
-  endDate:   z.string().datetime().optional(),
+  page:      z.coerce.number().int().positive().default(1),
+  limit:     z.coerce.number().int().min(1).max(100).default(20),
+  type:      z.string().transform(v => v.toUpperCase()).optional(),
+  category:  z.string().optional(),
+  startDate: z.string().optional(),
+  endDate:   z.string().optional(),
   sortBy:    z.enum(['date', 'amount', 'createdAt']).default('date'),
   sortOrder: z.enum(['asc', 'desc']).default('desc'),
 });

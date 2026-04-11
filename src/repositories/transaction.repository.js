@@ -4,7 +4,7 @@ import prisma from '../config/database.js';
 export const TransactionRepository = {
   async create({ userId, type, amount, category, description, date }) {
     return prisma.transaction.create({
-      data: { userId, type, amount, category, description, date: date ? new Date(date) : undefined },
+      data: { userId, type, amount, category, description, date: date ?? undefined },
     });
   },
 
@@ -43,7 +43,7 @@ export const TransactionRepository = {
       where: { id, userId },
       data: {
         ...data,
-        ...(data.date && { date: new Date(data.date) }),
+        ...(data.date && { date: data.date }), // already a Date from validator
       },
     });
   },
