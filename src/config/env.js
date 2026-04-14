@@ -35,9 +35,9 @@ export const config = {
     refreshExpiresIn:   process.env.JWT_REFRESH_EXPIRES_IN || '7d',
   },
 
-  openai: {
-    apiKey: process.env.OPENAI_API_KEY || '',
-    model:  process.env.OPENAI_MODEL   || 'gpt-4o-mini',
+  groq: {
+    apiKey: process.env.GROQ_API_KEY || '',
+    model:  process.env.GROQ_MODEL   || 'llama-3.3-70b-versatile',
   },
 
   email: {

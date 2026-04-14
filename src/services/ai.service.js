@@ -1,11 +1,11 @@
 // src/services/ai.service.js
-import OpenAI from 'openai';
+import Groq   from 'groq-sdk';
 import { config } from '../config/env.js';
 import { TransactionRepository } from '../repositories/transaction.repository.js';
 import { BudgetRepository }      from '../repositories/budget.repository.js';
 import { AppError }              from '../utils/AppError.js';
 
-const openai = new OpenAI({ apiKey: config.openai.apiKey });
+const groq = new Groq({ apiKey: config.groq.apiKey });
 
 export const AIService = {
   async getInsights(userId) {
@@ -28,8 +28,8 @@ export const AIService = {
     const prompt = AIService._buildPrompt(transactions, budgets, summary);
 
     try {
-      const completion = await openai.chat.completions.create({
-        model: config.openai.model,
+      const completion = await groq.chat.completions.create({
+        model: config.groq.model,
         messages: [
           {
             role: 'system',
@@ -92,8 +92,8 @@ User Financial Context:
     `.trim();
 
     try {
-      const completion = await openai.chat.completions.create({
-        model: config.openai.model,
+      const completion = await groq.chat.completions.create({
+        model: config.groq.model,
         messages: [
           {
             role: 'system',

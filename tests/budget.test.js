@@ -60,6 +60,8 @@ describe('GET /budgets', () => {
     expect(res.status).toBe(200);
     expect(res.body.data.summary).toBeDefined();
     expect(res.body.data.budgets).toBeDefined();
+    expect(res.body.data.summary.totalBudgets).toBeDefined();
+    expect(res.body.data.summary.healthScore).toBeDefined();
   });
 
   it('should return a single budget', async () => {
@@ -69,6 +71,8 @@ describe('GET /budgets', () => {
     // Enriched fields
     expect(res.body.data.budget.percentageUsed).toBeDefined();
     expect(res.body.data.budget.status).toBeDefined();
+    expect(res.body.data.budget.remaining).toBeDefined();
+    expect(res.body.data.budget.daysLeft).toBeDefined();
   });
 });
 

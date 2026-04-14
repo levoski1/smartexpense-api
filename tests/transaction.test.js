@@ -36,7 +36,7 @@ describe('POST /transactions', () => {
       .send({ type: 'EXPENSE', amount: 5000, category: 'Food', description: 'Lunch' });
 
     expect(res.status).toBe(201);
-    expect(res.body.data.transaction.category).toBe('Food');
+    expect(res.body.data.transaction.category).toBe('food'); // normalized to lowercase
     txId = res.body.data.transaction.id;
   });
 
@@ -44,9 +44,9 @@ describe('POST /transactions', () => {
     const res = await request(app)
       .post(BASE)
       .set(auth())
-      .send({ type: 'INCOME', amount: 100000, category: 'Salary' });
+      .send({ type: 'income', amount: 100000, category: 'Salary' }); // lowercase type accepted
     expect(res.status).toBe(201);
-    expect(res.body.data.transaction.type).toBe('INCOME');
+    expect(res.body.data.transaction.type).toBe('INCOME'); // normalized to uppercase
   });
 
   it('should reject negative amount', async () => {
@@ -74,7 +74,7 @@ describe('GET /transactions', () => {
   });
 
   it('should filter by type', async () => {
-    const res = await request(app).get(`${BASE}?type=EXPENSE`).set(auth());
+    const res = await request(app).get(`${BASE}?type=expense`).set(auth()); // lowercase accepted
     expect(res.status).toBe(200);
     res.body.data.items.forEach(t => expect(t.type).toBe('EXPENSE'));
   });

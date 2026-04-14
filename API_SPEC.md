@@ -39,6 +39,8 @@ All responses follow this structure:
 }
 ```
 
+> All date fields in responses are returned in `dd/mm/yyyy` format (e.g. `"07/04/2026"`).
+
 ---
 
 ## Rate Limits
@@ -57,8 +59,6 @@ All responses follow this structure:
 ### POST /auth/register
 
 Creates a new user account and returns tokens.
-
-**Headers:** none required
 
 **Body:**
 | Field | Type | Required | Rules |
@@ -86,7 +86,7 @@ Creates a new user account and returns tokens.
       "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
       "name": "Levi Bliz",
       "email": "levi@example.com",
-      "createdAt": "2026-04-07T14:00:00.000Z"
+      "createdAt": "07/04/2026"
     },
     "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
     "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
@@ -127,7 +127,7 @@ Authenticates a user and returns tokens.
       "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
       "name": "Demo User",
       "email": "demo@smartexpense.com",
-      "createdAt": "2026-04-07T14:00:00.000Z"
+      "createdAt": "07/04/2026"
     },
     "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
     "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
@@ -207,9 +207,7 @@ Invalidates a single refresh token.
 
 Sends a password reset link to the user's email. Always returns 200 regardless of whether the email exists (prevents user enumeration).
 
-**Headers:** none required
-
-**Rate limit:** 5 requests / 15 min per IP
+**Rate limit:** 5 req / 15 min per IP
 
 **Body:**
 | Field | Type | Required |
@@ -237,11 +235,9 @@ Sends a password reset link to the user's email. Always returns 200 regardless o
 
 ### POST /auth/reset-password
 
-Resets the user's password using the token received in the reset email. Invalidates all existing refresh tokens on success.
+Resets the user's password using the token from the reset email. Invalidates all existing refresh tokens on success.
 
-**Headers:** none required
-
-**Rate limit:** 5 requests / 15 min per IP
+**Rate limit:** 5 req / 15 min per IP
 
 **Body:**
 | Field | Type | Required | Notes |
@@ -275,8 +271,6 @@ Resets the user's password using the token received in the reset email. Invalida
 
 **Headers:** `Authorization: Bearer <accessToken>`
 
-**Body:** none
-
 **Sample Response (200):**
 ```json
 {
@@ -303,8 +297,8 @@ Resets the user's password using the token received in the reset email. Invalida
       "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
       "name": "Demo User",
       "email": "demo@smartexpense.com",
-      "createdAt": "2026-04-07T14:00:00.000Z",
-      "updatedAt": "2026-04-07T14:00:00.000Z"
+      "createdAt": "07/04/2026",
+      "updatedAt": "07/04/2026"
     }
   }
 }
@@ -318,6 +312,10 @@ Resets the user's password using the token received in the reset email. Invalida
 
 All transaction endpoints require `Authorization: Bearer <accessToken>`.
 
+> `type` accepts any case (`expense`, `EXPENSE`, `Expense`) — normalized to uppercase.  
+> `category` accepts any case — normalized to lowercase.  
+> `date` accepts `dd/mm/yyyy` or ISO datetime format.
+
 ---
 
 ### GET /transactions
@@ -329,16 +327,16 @@ Returns a paginated list of the user's transactions with optional filters.
 |---|---|---|---|---|
 | page | number | no | 1 | |
 | limit | number | no | 20 | max 100 |
-| type | string | no | — | `INCOME` or `EXPENSE` |
-| category | string | no | — | exact match |
-| startDate | ISO datetime | no | — | |
-| endDate | ISO datetime | no | — | |
+| type | string | no | — | case-insensitive: `income` or `expense` |
+| category | string | no | — | partial match, case-insensitive |
+| startDate | string | no | — | `dd/mm/yyyy` or ISO |
+| endDate | string | no | — | `dd/mm/yyyy` or ISO |
 | sortBy | string | no | `date` | `date`, `amount`, `createdAt` |
 | sortOrder | string | no | `desc` | `asc` or `desc` |
 
 **Sample Request:**
 ```
-GET /api/v1/transactions?type=EXPENSE&category=Food&page=1&limit=10
+GET /api/v1/transactions?type=expense&category=food&page=1&limit=10
 ```
 
 **Sample Response (200):**
@@ -352,10 +350,11 @@ GET /api/v1/transactions?type=EXPENSE&category=Food&page=1&limit=10
         "id": "txn-uuid-001",
         "type": "EXPENSE",
         "amount": "350.00",
-        "category": "Food",
+        "category": "food",
         "description": "Groceries",
-        "date": "2026-04-07T00:00:00.000Z",
-        "createdAt": "2026-04-07T14:00:00.000Z"
+        "date": "07/04/2026",
+        "createdAt": "07/04/2026",
+        "updatedAt": "07/04/2026"
       }
     ],
     "pagination": {
@@ -379,20 +378,20 @@ Creates a new transaction.
 **Body:**
 | Field | Type | Required | Notes |
 |---|---|---|---|
-| type | string | yes | `INCOME` or `EXPENSE` |
+| type | string | yes | case-insensitive: `income` or `expense` |
 | amount | number | yes | positive, max 2 decimal places |
-| category | string | yes | max 50 chars |
+| category | string | yes | max 50 chars, any case |
 | description | string | no | max 255 chars |
-| date | ISO datetime | no | defaults to now |
+| date | string | no | `dd/mm/yyyy` or ISO — defaults to today |
 
 **Sample Request:**
 ```json
 {
-  "type": "EXPENSE",
+  "type": "expense",
   "amount": 350.00,
   "category": "Food",
   "description": "Weekly groceries",
-  "date": "2026-04-07T10:00:00.000Z"
+  "date": "07/04/2026"
 }
 ```
 
@@ -407,11 +406,11 @@ Creates a new transaction.
       "userId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
       "type": "EXPENSE",
       "amount": "350.00",
-      "category": "Food",
+      "category": "food",
       "description": "Weekly groceries",
-      "date": "2026-04-07T10:00:00.000Z",
-      "createdAt": "2026-04-07T14:00:00.000Z",
-      "updatedAt": "2026-04-07T14:00:00.000Z"
+      "date": "07/04/2026",
+      "createdAt": "07/04/2026",
+      "updatedAt": "07/04/2026"
     }
   }
 }
@@ -437,9 +436,11 @@ Returns a single transaction by ID.
       "id": "txn-uuid-001",
       "type": "EXPENSE",
       "amount": "350.00",
-      "category": "Food",
+      "category": "food",
       "description": "Weekly groceries",
-      "date": "2026-04-07T10:00:00.000Z"
+      "date": "07/04/2026",
+      "createdAt": "07/04/2026",
+      "updatedAt": "07/04/2026"
     }
   }
 }
@@ -451,11 +452,9 @@ Returns a single transaction by ID.
 
 ### PATCH /transactions/:id
 
-Partially updates a transaction. All fields are optional.
+Partially updates a transaction. All fields optional.
 
 **Path Params:** `id` — transaction UUID
-
-**Body:** same fields as POST, all optional
 
 **Sample Request:**
 ```json
@@ -475,9 +474,11 @@ Partially updates a transaction. All fields are optional.
       "id": "txn-uuid-001",
       "type": "EXPENSE",
       "amount": "420.00",
-      "category": "Food",
+      "category": "food",
       "description": "Groceries + household items",
-      "date": "2026-04-07T10:00:00.000Z"
+      "date": "07/04/2026",
+      "createdAt": "07/04/2026",
+      "updatedAt": "07/04/2026"
     }
   }
 }
@@ -490,8 +491,6 @@ Partially updates a transaction. All fields are optional.
 ### DELETE /transactions/:id
 
 Deletes a transaction.
-
-**Path Params:** `id` — transaction UUID
 
 **Sample Response (200):**
 ```json
@@ -507,9 +506,9 @@ Deletes a transaction.
 
 ### GET /transactions/summary
 
-Returns income/expense totals and balance for the user.
+Returns income/expense totals and balance.
 
-**Query Parameters:** `startDate`, `endDate` (optional ISO datetime filters)
+**Query Parameters:** `startDate`, `endDate` (optional, `dd/mm/yyyy` or ISO)
 
 **Sample Response (200):**
 ```json
@@ -518,9 +517,9 @@ Returns income/expense totals and balance for the user.
   "message": "Success",
   "data": {
     "summary": {
-      "totalIncome": "5750.00",
-      "totalExpense": "3050.00",
-      "balance": "2700.00",
+      "totalIncome": 5750,
+      "totalExpense": 3050,
+      "balance": 2700,
       "incomeCount": 3,
       "expenseCount": 9
     }
@@ -537,9 +536,9 @@ Returns spending breakdown by category.
 **Query Parameters:**
 | Param | Type | Default | Notes |
 |---|---|---|---|
-| type | string | `EXPENSE` | `INCOME` or `EXPENSE` |
-| startDate | ISO datetime | — | optional |
-| endDate | ISO datetime | — | optional |
+| type | string | `EXPENSE` | case-insensitive |
+| startDate | string | — | optional |
+| endDate | string | — | optional |
 
 **Sample Response (200):**
 ```json
@@ -548,8 +547,8 @@ Returns spending breakdown by category.
   "message": "Success",
   "data": {
     "breakdown": [
-      { "category": "Food", "total": 570.00, "count": 2, "percentage": 19 },
-      { "category": "Rent", "total": 1200.00, "count": 1, "percentage": 39 }
+      { "category": "food", "total": 570.00, "count": 2, "percentage": 19 },
+      { "category": "rent", "total": 1200.00, "count": 1, "percentage": 39 }
     ],
     "type": "EXPENSE"
   }
@@ -591,7 +590,7 @@ All budget endpoints require `Authorization: Bearer <accessToken>`.
 
 ### GET /budgets
 
-Returns all budgets for the user (all periods).
+Returns all budgets for the user.
 
 **Sample Response (200):**
 ```json
@@ -603,11 +602,17 @@ Returns all budgets for the user (all periods).
       {
         "id": "bgt-uuid-001",
         "category": "Food",
-        "limit": "800.00",
-        "spent": "570.00",
+        "limit": 800,
+        "spent": 570,
+        "remaining": 230,
+        "percentageUsed": 71,
+        "isExceeded": false,
+        "status": "warning",
+        "daysLeft": 23,
         "period": "MONTHLY",
-        "startDate": "2026-04-01T00:00:00.000Z",
-        "endDate": "2026-04-30T00:00:00.000Z"
+        "startDate": "01/04/2026",
+        "endDate": "30/04/2026",
+        "createdAt": "07/04/2026"
       }
     ]
   }
@@ -626,8 +631,8 @@ Creates a new budget.
 | category | string | yes | max 50 chars |
 | limit | number | yes | positive |
 | period | string | no | `WEEKLY`, `MONTHLY`, `YEARLY` — default `MONTHLY` |
-| startDate | ISO datetime | yes | |
-| endDate | ISO datetime | yes | must be after startDate |
+| startDate | string | yes | `dd/mm/yyyy` or ISO |
+| endDate | string | yes | must be after startDate |
 
 **Sample Request:**
 ```json
@@ -648,14 +653,18 @@ Creates a new budget.
   "data": {
     "budget": {
       "id": "bgt-uuid-001",
-      "userId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
       "category": "Food",
-      "limit": "800.00",
-      "spent": "0.00",
+      "limit": 800,
+      "spent": 0,
+      "remaining": 800,
+      "percentageUsed": 0,
+      "isExceeded": false,
+      "status": "healthy",
+      "daysLeft": 23,
       "period": "MONTHLY",
-      "startDate": "2026-04-01T00:00:00.000Z",
-      "endDate": "2026-04-30T23:59:59.000Z",
-      "createdAt": "2026-04-07T14:00:00.000Z"
+      "startDate": "01/04/2026",
+      "endDate": "30/04/2026",
+      "createdAt": "07/04/2026"
     }
   }
 }
@@ -667,34 +676,15 @@ Creates a new budget.
 
 ### GET /budgets/active
 
-Returns only currently active budgets (where today falls within startDate–endDate).
+Returns only currently active budgets (today falls within startDate–endDate).
 
-**Sample Response (200):**
-```json
-{
-  "status": "success",
-  "message": "Success",
-  "data": {
-    "budgets": [
-      {
-        "id": "bgt-uuid-001",
-        "category": "Food",
-        "limit": "800.00",
-        "spent": "570.00",
-        "period": "MONTHLY",
-        "startDate": "2026-04-01T00:00:00.000Z",
-        "endDate": "2026-04-30T23:59:59.000Z"
-      }
-    ]
-  }
-}
-```
+**Sample Response (200):** same shape as `GET /budgets`
 
 ---
 
 ### GET /budgets/dashboard
 
-Returns enriched active budgets with progress metrics.
+Returns enriched active budgets with full progress metrics and summary.
 
 **Sample Response (200):**
 ```json
@@ -706,54 +696,39 @@ Returns enriched active budgets with progress metrics.
       {
         "id": "bgt-uuid-001",
         "category": "Food",
-        "limit": 800.00,
-        "spent": 570.00,
-        "remaining": 230.00,
-        "percentUsed": 71,
+        "limit": 800,
+        "spent": 570,
+        "remaining": 230,
+        "percentageUsed": 71,
+        "isExceeded": false,
         "status": "warning",
+        "daysLeft": 23,
+        "dailyBurnRate": 28.5,
+        "projectedDaysToExhaust": 8,
         "period": "MONTHLY",
-        "startDate": "2026-04-01T00:00:00.000Z",
-        "endDate": "2026-04-30T23:59:59.000Z"
+        "startDate": "01/04/2026",
+        "endDate": "30/04/2026"
       }
     ],
     "summary": {
       "totalBudgets": 6,
-      "onTrack": 4,
-      "warning": 1,
-      "exceeded": 1
-    }
+      "totalAlerts": 2,
+      "totalExceeded": 1,
+      "healthScore": 67
+    },
+    "alerts": [ ],
+    "exceeded": [ ]
   }
 }
 ```
 
-> `status` values: `on_track` (< 80%) · `warning` (80–99%) · `exceeded` (≥ 100%)
+> `status` values: `healthy` (< 75%) · `warning` (75–89%) · `critical` (90–99%) · `exceeded` (≥ 100%)
 
 ---
 
 ### GET /budgets/:id
 
-Returns a single budget by ID.
-
-**Path Params:** `id` — budget UUID
-
-**Sample Response (200):**
-```json
-{
-  "status": "success",
-  "message": "Success",
-  "data": {
-    "budget": {
-      "id": "bgt-uuid-001",
-      "category": "Food",
-      "limit": "800.00",
-      "spent": "570.00",
-      "period": "MONTHLY",
-      "startDate": "2026-04-01T00:00:00.000Z",
-      "endDate": "2026-04-30T23:59:59.000Z"
-    }
-  }
-}
-```
+Returns a single enriched budget by ID.
 
 **Errors:** `404` budget not found
 
@@ -762,8 +737,6 @@ Returns a single budget by ID.
 ### PATCH /budgets/:id
 
 Partially updates a budget. All fields optional.
-
-**Path Params:** `id` — budget UUID
 
 **Sample Request:**
 ```json
@@ -781,8 +754,11 @@ Partially updates a budget. All fields optional.
     "budget": {
       "id": "bgt-uuid-001",
       "category": "Food",
-      "limit": "1000.00",
-      "spent": "570.00"
+      "limit": 1000,
+      "spent": 570,
+      "remaining": 430,
+      "percentageUsed": 57,
+      "status": "healthy"
     }
   }
 }
@@ -808,18 +784,17 @@ Deletes a budget.
 
 ---
 
-## 4. AI
+## 4. AI (Powered by Groq)
 
 All AI endpoints require `Authorization: Bearer <accessToken>`.  
-Rate limit: **20 requests / hour per IP**.
+Rate limit: **20 requests / hour per IP**.  
+Model: `llama-3.3-70b-versatile` via Groq.
 
 ---
 
 ### GET /ai/insights
 
 Analyzes the user's financial data and returns AI-generated insights and recommendations.
-
-**Body:** none
 
 **Sample Response (200):**
 ```json
@@ -841,19 +816,19 @@ Analyzes the user's financial data and returns AI-generated insights and recomme
     "recommendations": [
       "Reduce restaurant spending by ₦100 to stay within your Food budget."
     ],
-    "topSpendingCategory": "Rent",
+    "topSpendingCategory": "rent",
     "savingsRate": 47,
     "projections": {
       "endOfMonthBalance": 2400.00,
-      "budgetsAtRisk": ["Food", "Entertainment"]
+      "budgetsAtRisk": ["food", "entertainment"]
     },
-    "generatedAt": "2026-04-07T14:00:00.000Z",
+    "generatedAt": "07/04/2026",
     "tokensUsed": 843
   }
 }
 ```
 
-**Errors:** `401` unauthorized · `429` rate limit · `502` AI service error · `503` AI misconfigured
+**Errors:** `401` unauthorized · `429` rate limit · `502` AI service error
 
 ---
 
@@ -879,9 +854,9 @@ Sends a message to the AI financial advisor with the user's financial context.
   "status": "success",
   "message": "AI response generated",
   "data": {
-    "reply": "Based on your data, you've spent ₦570 on Food so far this month against a ₦800 budget — that's 71%. With 23 days left, you're on track but close to the limit. I'd suggest keeping daily food spending under ₦10 for the rest of the month.",
+    "reply": "Based on your data, you've spent ₦570 on food so far this month against a ₦800 budget — that's 71%. With 23 days left, you're on track but close to the limit.",
     "tokensUsed": 312,
-    "generatedAt": "2026-04-07T14:00:00.000Z"
+    "generatedAt": "07/04/2026"
   }
 }
 ```
@@ -901,7 +876,6 @@ Sends a message to the AI financial advisor with the user's financial context.
 | 409 | Conflict | `"An account with this email already exists"` |
 | 429 | Rate limit exceeded | `"Too many login attempts. Please try again in 15 minutes."` |
 | 502 | AI service error | `"AI service error: ..."` |
-| 503 | AI misconfigured | `"AI service configuration error. Please contact support."` |
 | 500 | Internal server error | `"Internal server error"` |
 
 ---
@@ -945,20 +919,37 @@ POST {{baseUrl}}/auth/login
 ```
 → Save `data.accessToken` and `data.refreshToken` to env vars.
 
-**3. Create transaction**
+**3. Forgot password**
+```json
+POST {{baseUrl}}/auth/forgot-password
+{
+  "email": "demo@smartexpense.com"
+}
+```
+
+**4. Reset password**
+```json
+POST {{baseUrl}}/auth/reset-password
+{
+  "token": "<token-from-email>",
+  "password": "NewSecret@456"
+}
+```
+
+**5. Create transaction (dd/mm/yyyy date)**
 ```json
 POST {{baseUrl}}/transactions
 Authorization: Bearer {{accessToken}}
 {
-  "type": "EXPENSE",
+  "type": "expense",
   "amount": 150.00,
   "category": "Transport",
   "description": "Uber to work",
-  "date": "2026-04-07T08:00:00.000Z"
+  "date": "07/04/2026"
 }
 ```
 
-**4. Create budget**
+**6. Create budget**
 ```json
 POST {{baseUrl}}/budgets
 Authorization: Bearer {{accessToken}}
@@ -971,19 +962,19 @@ Authorization: Bearer {{accessToken}}
 }
 ```
 
-**5. Get dashboard**
+**7. Get dashboard**
 ```
 GET {{baseUrl}}/budgets/dashboard
 Authorization: Bearer {{accessToken}}
 ```
 
-**6. AI insights**
+**8. AI insights**
 ```
 GET {{baseUrl}}/ai/insights
 Authorization: Bearer {{accessToken}}
 ```
 
-**7. AI chat**
+**9. AI chat**
 ```json
 POST {{baseUrl}}/ai/chat
 Authorization: Bearer {{accessToken}}
@@ -992,7 +983,7 @@ Authorization: Bearer {{accessToken}}
 }
 ```
 
-**8. Refresh token**
+**10. Refresh token**
 ```json
 POST {{baseUrl}}/auth/refresh
 {
@@ -1000,7 +991,7 @@ POST {{baseUrl}}/auth/refresh
 }
 ```
 
-**9. Logout**
+**11. Logout**
 ```json
 POST {{baseUrl}}/auth/logout
 {
